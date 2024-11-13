@@ -178,7 +178,6 @@ def mac_device_capabilities() -> DeviceCapabilities:
 def linux_device_capabilities() -> DeviceCapabilities:
   import psutil
   from tinygrad import Device
-
   if DEBUG >= 2: print(f"tinygrad {Device.DEFAULT=}")
   if Device.DEFAULT == "CUDA" or Device.DEFAULT == "NV" or Device.DEFAULT == "GPU":
     import pynvml
@@ -199,11 +198,45 @@ def linux_device_capabilities() -> DeviceCapabilities:
     )
   elif Device.DEFAULT == "AMD":
     # TODO AMD support
+    import re
+    import amdsmi
+    import subprocess
+    result = subprocess.run(['rocminfo |  grep Marketing'], shell=True, capture_output=True, text=True)
+    devices_output = result.stdout.split('\n')
+    pattern = r'\s*Marketing Name:\s*(.*)'
+
+    matched_results = [re.match(pattern, elem) for elem in devices_output]
+    postprocess_device_name = lambda device: ' '.join([s for s in device.split(' ') if s])
+    amd_devices = [postprocess_device_name(elem.group(1)) for elem in matched_results if elem]
+        
+    gpu_name = None
+    for device in amd_devices:
+      for key in CHIP_FLOPS.keys():
+        if device in key:
+          gpu_name = key 
+          break 
+      
+      if gpu_name:
+        break 
+      
+    total_vram = None
+    try:
+      amdsmi.amdsmi_init()
+      devices = amdsmi.amdsmi_get_processor_handles()
+      if len(devices) == 0:
+          print("No GPUs on machine")
+      else:
+          for device in devices:
+              vram_usage = amdsmi.amdsmi_get_gpu_vram_usage(device)
+              total_vram = vram_usage['vram_total']
+    except AmdSmiException as e:
+      print(e)
+    print(total_vram // 2**10,)
     return DeviceCapabilities(
-      model="Linux Box (AMD)",
-      chip="Unknown AMD",
-      memory=psutil.virtual_memory().total // 2**20,
-      flops=DeviceFlops(fp32=0, fp16=0, int8=0),
+      model=f"Linux Box ({gpu_name})",
+      chip=gpu_name,
+      memory=total_vram,
+      flops=CHIP_FLOPS.get(gpu_name, DeviceFlops(fp32=0, fp16=0, int8=0)),
     )
   else:
     return DeviceCapabilities(
