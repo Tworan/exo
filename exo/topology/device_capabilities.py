@@ -133,6 +133,7 @@ CHIP_FLOPS = {
   "AMD Radeon RX 7700 XT": DeviceFlops(fp32=34.2*TFLOPS, fp16=68.4*TFLOPS, int8=136.8*TFLOPS),
   "AMD Radeon RX 7600": DeviceFlops(fp32=21.5*TFLOPS, fp16=43.0*TFLOPS, int8=86.0*TFLOPS),
   "AMD Radeon RX 7500": DeviceFlops(fp32=16.2*TFLOPS, fp16=32.4*TFLOPS, int8=64.8*TFLOPS),
+  "AMD Radeon Graphics": DeviceFlops(fp32=8.3*TFLOPS, fp16=16.5*TFLOPS, int8=33.0*TFLOPS),
   ### Qualcomm embedded chips: TODO
 }
 CHIP_FLOPS.update({f"LAPTOP GPU {key}": value for key, value in CHIP_FLOPS.items()})
